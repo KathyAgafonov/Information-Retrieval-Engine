@@ -241,7 +241,7 @@ def expand_query_wiki_model(query_tokens):
         if tok in model:
             sim = model.most_similar(tok, topn=8)
             for word, similarity in sim:
-                if similarity > 0.45:
+                if similarity > 0.5:
                     new_tokens.append(word[0])
         new_tokens.append(tok)
     return new_tokens
