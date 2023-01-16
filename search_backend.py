@@ -95,6 +95,7 @@ def get_cosine_similarity(query, index, path, expand=False):
 
     return dict(sorted(doc_id_scores.items(), key=lambda item: item[1], reverse=True))
 
+
 # ---------------------------------------- binary function ----------------------------------------
 def get_binary(query, index, path, expand=False):
     """
@@ -131,6 +132,16 @@ def get_binary(query, index, path, expand=False):
 # ------------------------------- The sub-functions of the search function -------------------------------
 
 def combined_search(query, w1=0.97, w2=0.03):
+    """
+    Args:
+        query: query to search not tokenized
+        w1: weight for page_views
+        w2: weight for page_rank
+
+    Returns:
+        dict: A dictionary of document IDs as keys and their word counts as values,
+        sorted in descending order by word count.
+    """
     results = dict()
     if len(tokenize(query)) <= 2:
         results = get_binary(query, inverted_title, title_path, True)
