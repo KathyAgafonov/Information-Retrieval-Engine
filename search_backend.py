@@ -96,6 +96,7 @@ def get_cosine_similarity(query, index, path, expand=False):
     return dict(sorted(doc_id_scores.items(), key=lambda item: item[1], reverse=True))
 
 
+
 def calculate_query_tfidf(query_tokens, index):
     """
     Returns a dictionary of query tokens and their tf-idf score.
@@ -197,9 +198,9 @@ def get_binary(query, index, path, expand=False):
             posting_list = index.read_posting_list(term, path)
             for doc_id, word_count in posting_list:
                 if doc_id in doc_id_word_counts:
-                    doc_id_word_counts[doc_id] += 1 / word_count
+                    doc_id_word_counts[doc_id] += 1
                 else:
-                    doc_id_word_counts[doc_id] = 1 / word_count
+                    doc_id_word_counts[doc_id] = 1
 
     return dict(sorted(doc_id_word_counts.items(), key=lambda item: item[1], reverse=True))
 
