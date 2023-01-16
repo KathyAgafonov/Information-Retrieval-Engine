@@ -27,8 +27,6 @@ inverted_anchor = InvertedIndex.read_index(anchor_path, "index_anchor")
 inverted_title = InvertedIndex.read_index(title_path, "index_title")
 
 
-# --TODO: set and check modeling - expand query
-
 def open_pkl_file(path):
     with open(path, 'rb') as f:
         return pickle.loads(f.read())
@@ -63,29 +61,39 @@ def tokenize(text):
     return list_of_tokens
 
 
-# TODO: DONE
 # ---------------------------------------- tfidf function ----------------------------------------
+
 def get_cosine_similarity(query, index, path, expand=False):
     """
-    Returns a sorted list of documents id's according to tf-idf score.
-    Args:
-        expand: boolean, indicating whether to expand the query or nor
-        query (str)
-        index
-        path (str): the path of the index
-    Returns:
-        dict: a sorted dictionary of {doc_id: tfidf} in descending order of tf-idf.
-    """
-    query_tokens = tokenize(query)
-    if expand:
-        query_tokens = expand_query_wiki_model(query_tokens)
-    query_tokens = list(set(query_tokens))
+    Retrieves all the document IDs that contain at least one of the terms in the query.
+    The function first tokenizes the query to extract the unique terms in the query.
+    Then, it iterates through each term in the query and retrieves its posting list from the index
 
-    query_tfidf = calculate_query_tfidf(query_tokens, index)
-    doc_tfidf = calculate_doc_tfidf(query_tokens, index, path)
-    numerator = calculate_numerator(query_tfidf, doc_tfidf)
-    cosine_similarity = calculate_cosine_similarity(numerator, query_tokens)
-    return dict(sorted(cosine_similarity.items(), key=lambda item: item[1], reverse=True))
+    Args:
+        expand: boolean, indicating whether to expand the query or not
+        query (str): The query to search for.
+        index: An object containing the index data.
+        path (str): the path of the index
+
+    Returns:
+        dict: A dictionary of document IDs as keys and their TF-IDF scores as values, sorted in descending order by TF-IDF score.
+    """
+    doc_id_scores = {}
+    tokenized_query = tokenize(query)
+    if expand:
+        tokenized_query = expand_query_wiki_model(tokenized_query)
+    for term in set(tokenized_query):
+        if term in index.df.keys():
+            posting_list = index.read_posting_list(term, path)
+            idf = np.log10(len(titles_dict) / index.df[term])
+            for doc_id, tf in posting_list:
+                tf_idf = tf * idf
+                if doc_id in doc_id_scores:
+                    doc_id_scores[doc_id] += tf_idf
+                else:
+                    doc_id_scores[doc_id] = tf_idf
+
+    return dict(sorted(doc_id_scores.items(), key=lambda item: item[1], reverse=True))
 
 
 def calculate_query_tfidf(query_tokens, index):
@@ -101,7 +109,7 @@ def calculate_query_tfidf(query_tokens, index):
     for token in query_tokens:
         df = index.df.get(token, 0)
         if df != 0:
-            idf = np.log10(len(DL_dict) / df)
+            idf = np.log10(len(titles_dict) / df)
             query_tfidf[token] = query_tokens.count(token) / len(query_tokens) * idf
     return query_tfidf
 
@@ -122,7 +130,7 @@ def calculate_doc_tfidf(query_tokens, index, path):
         if df == 0:
             continue
         post_list = index.read_posting_list(token, path)
-        idf = np.log10(len(DL_dict) / df)
+        idf = np.log10(len(titles_dict) / df)
         for doc_id, freq in post_list:
             doc_tfidf[token].append((doc_id, (freq / DL_dict[doc_id]) * idf))
     return doc_tfidf
@@ -163,7 +171,6 @@ def calculate_cosine_similarity(numerator, query_tokens):
     return cos
 
 
-# TODO: DONE
 # ---------------------------------------- binary function ----------------------------------------
 def get_binary(query, index, path, expand=False):
     """
@@ -178,7 +185,8 @@ def get_binary(query, index, path, expand=False):
         path (str): the path of the index
 
     Returns:
-        dict: A dictionary of document IDs as keys and their word counts as values, sorted in descending order by word count.
+        dict: A dictionary of document IDs as keys and their word counts as values,
+        sorted in descending order by word count.
     """
     doc_id_word_counts = {}
     tokenized_query = tokenize(query)
@@ -195,23 +203,25 @@ def get_binary(query, index, path, expand=False):
 
     return dict(sorted(doc_id_word_counts.items(), key=lambda item: item[1], reverse=True))
 
-# TODO: DONE
-# ------------------------------- The subfunctions of the search function -------------------------------
+
+# ------------------------------- The sub-functions of the search function -------------------------------
 
 def combined_search(query, w1=0.97, w2=0.03):
     results = dict()
     if len(tokenize(query)) <= 2:
         results = get_binary(query, inverted_title, title_path, True)
+        text_scores = get_cosine_similarity(query, inverted_text, text_path, True)
+        results.update(text_scores)
     else:
         combined_score = {}
-        text_scores = set(get_cosine_similarity(query, inverted_text, text_path, True))
-        title_scores = set(get_binary(query, inverted_title, title_path, True))
-        anchor_scores = set(get_binary(query, inverted_anchor, anchor_path, True))
+        text_scores = get_cosine_similarity(query, inverted_text, text_path, True)
+        title_scores = get_binary(query, inverted_title, title_path, True)
+        anchor_scores = get_binary(query, inverted_anchor, anchor_path, True)
+        merged = [key for key in text_scores if key in title_scores and key in anchor_scores]
 
-        intersection_ids = list(title_scores & text_scores & anchor_scores)
-        if intersection_ids:
-            for id in intersection_ids:
-                combined_score[id] = (w1 * page_view_dict.get(id, 0)) + (w2 * page_rank_dict.get(id, 0))
+        if merged:
+            for doc_id in merged:
+                combined_score[doc_id] = (w1 * page_view_dict.get(doc_id, 0)) + (w2 * page_rank_dict.get(doc_id, 0))
             results = dict(sorted(combined_score.items(), key=lambda item: item[1], reverse=True))
     return results
 
@@ -228,7 +238,7 @@ def expand_query_wiki_model(query_tokens):
     new_tokens = []
     for tok in query_tokens:
         if tok in model:
-            sim = model.most_similar(tok, topn=5)
+            sim = model.most_similar(tok, topn=8)
             for word, similarity in sim:
                 if similarity > 0.45:
                     new_tokens.append(word[0])
@@ -239,7 +249,8 @@ def expand_query_wiki_model(query_tokens):
 # -----------------------------------  get statistics for page rank/ page view -----------------------------------
 def get_page_stats(wiki_ids, statistics_dict):
     """
-    This function takes in a list of wiki_ids and a statistics_dict. It returns a list of the statistics of pages corresponding to the passed wiki_ids
+    This function takes in a list of wiki_ids and a statistics_dict.
+    It returns a list of the statistics of pages corresponding to the passed wiki_ids
     from the statistics_dict. If a wiki_id is not present in the statistics_dict, it returns 0 for that id.
 
     Parameters:

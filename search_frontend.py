@@ -41,7 +41,6 @@ def search():
     return jsonify(res)
 
 
-# TODO
 @app.route("/search_body")
 def search_body():
     ''' Returns up to a 100 search results for the query using TFIDF AND COSINE

@@ -7,9 +7,6 @@ from time import sleep
 from search_backend import *
 
 
-# from queries_train import *
-
-
 # Opening JSON file
 def Open_JSON(path='/home/kathyagafonov/new_train.json'):
     with open(path) as json_file:
@@ -157,43 +154,44 @@ def test_all(test, test_list):
     sleep(10)
 
 
-def test_search_by_weights(test, test_list):
-    print("============================== search started  ==============================\n")
-    evaluate_weights(test, test_list)
-    sleep(10)
+#
+# def test_search_by_weights(test, test_list):
+#     print("============================== search started  ==============================\n")
+#     evaluate_weights(test, test_list)
+#     sleep(10)
+#
+#     evaluate_weights(test, test_list, expand=True)
+#     print("=====================================================================================")
 
-    evaluate_weights(test, test_list, expand=True)
-    print("=====================================================================================")
 
-
-def evaluate_weights(test, test_list, title_weight=0.99, text_weight=0, anchor_weight=0.1, expand=False):
-    search_func_evaluation_dict = {}
-    print("============================== search started  ==============================\n")
-    print("===================itle_weight = ", title_weight, " text_weight= ", text_weight, " anchor_weight= ",
-          anchor_weight, "======================\n")
-
-    if not expand:
-        print("=== without expansion ===")
-        t_start = timeit.default_timer()
-        results = test_search(test.keys(), title_weight, text_weight, anchor_weight)
-        t_stop = timeit.default_timer()
-        # print("Average time for query is: ", (t_stop - t_start)/30)
-        print('Total time search: ', datetime.utcfromtimestamp(t_stop - t_start).strftime('%H:%M:%S'))
-    else:
-        print("=== query EXPANDED ===")
-        t_start = timeit.default_timer()
-        results = test_search(test.keys(), title_weight, text_weight, anchor_weight, True)
-        t_stop = timeit.default_timer()
-        # print("Average time for query is: ", (t_stop - t_start)/30)
-        print('Total time search: ', datetime.utcfromtimestamp(t_stop - t_start).strftime('%H:%M:%S'))
-
-    for i in range(len(results)):
-        search_func_evaluation_dict[i] = calculate_map_at_40(test_list[i], results[i], 40)
-
-    scores = (search_func_evaluation_dict.values())
-    map_40 = (sum(search_func_evaluation_dict.values()) / len(test_list))
-    print("== Map@40:", map_40)
-    print("== for scores: ", scores)
+# def evaluate_weights(test, test_list, title_weight=0.99, text_weight=0, anchor_weight=0.1, expand=False):
+#     search_func_evaluation_dict = {}
+#     print("============================== search started  ==============================\n")
+#     print("===================itle_weight = ", title_weight, " text_weight= ", text_weight, " anchor_weight= ",
+#           anchor_weight, "======================\n")
+#
+#     if not expand:
+#         print("=== without expansion ===")
+#         t_start = timeit.default_timer()
+#         results = test_search(test.keys(), title_weight, text_weight, anchor_weight)
+#         t_stop = timeit.default_timer()
+#         # print("Average time for query is: ", (t_stop - t_start)/30)
+#         print('Total time search: ', datetime.utcfromtimestamp(t_stop - t_start).strftime('%H:%M:%S'))
+#     else:
+#         print("=== query EXPANDED ===")
+#         t_start = timeit.default_timer()
+#         results = test_search(test.keys(), title_weight, text_weight, anchor_weight, True)
+#         t_stop = timeit.default_timer()
+#         # print("Average time for query is: ", (t_stop - t_start)/30)
+#         print('Total time search: ', datetime.utcfromtimestamp(t_stop - t_start).strftime('%H:%M:%S'))
+#
+#     for i in range(len(results)):
+#         search_func_evaluation_dict[i] = calculate_map_at_40(test_list[i], results[i], 40)
+#
+#     scores = (search_func_evaluation_dict.values())
+#     map_40 = (sum(search_func_evaluation_dict.values()) / len(test_list))
+#     print("== Map@40:", map_40)
+#     print("== for scores: ", scores)
 
 
 def test_search(test, test_list, queries):
