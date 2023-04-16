@@ -1,5 +1,5 @@
 # Information-Retrieval-Engine
-## A brief overview of the project's aim and functionality:
+## A brief overview of the project's aim and functionality
 
 The project is a search engine based on the English Wikipedia corpus, with various modules to aid in searching for relevant documents based on a specific query.
 
